@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "skyvacancydb"
+version = "0.1.0"
+description = ""
+authors = ["Andrey <yuryev@yandex.ru>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+requests = "^2.31.0"
+python-dotenv = "^1.0.0"
+pysimplegui = "^4.60.5"
+psycopg2 = "^2.9.9"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
