@@ -8,49 +8,49 @@ import random
 
 
 class UserInterface:
-    def __init__(self):
+    def __init__(self, reload=''):
         self.__exit = False
+        if reload == '0':
+            print("Выполнение загрузки вакансий")
+            cities, vacancies, employers = self._load_data()
+            try:
+                params = EnvParameter().db_key()
+                with psycopg2.connect(**params) as conn:
+                    with conn.cursor() as cur:
 
-        print("Выполнение загрузки вакансий")
-        cities, vacancies, employers = self._load_data()
-        try:
-            params = EnvParameter().db_key()
-            with psycopg2.connect(**params) as conn:
-                with conn.cursor() as cur:
+                        print('Создание таблиц...')
+                        current_dir = os.path.dirname(os.path.abspath(__file__))
+                        root_dir = os.path.split(current_dir)[0]
+                        filepath = os.path.join(root_dir, os.path.normpath('data'), 'create_db.sql')
+                        if os.path.isfile(filepath):
+                            with open(filepath, 'r') as sql_file:
+                                line = sql_file.read()
+                                cur.execute(line)
 
-                    print('Создание таблиц...')
-                    current_dir = os.path.dirname(os.path.abspath(__file__))
-                    root_dir = os.path.split(current_dir)[0]
-                    filepath = os.path.join(root_dir, os.path.normpath('data'), 'create_db.sql')
-                    if os.path.isfile(filepath):
-                        with open(filepath, 'r') as sql_file:
-                            line = sql_file.read()
-                            cur.execute(line)
+                        print('Загрузка городов...')
+                        sql_request = 'INSERT INTO cities VALUES ( %s, %s )'
+                        for city in cities:
+                            cur.execute(sql_request, (city['id'], city['name']))
 
-                    print('Загрузка городов...')
-                    sql_request = 'INSERT INTO cities VALUES ( %s, %s )'
-                    for city in cities:
-                        cur.execute(sql_request, (city['id'], city['name']))
+                        print('Загрузка компаний...')
+                        sql_request = 'INSERT INTO companies VALUES ( %s, %s, %s, %s )'
+                        for employer in employers:
+                            cur.execute(sql_request, (employer.employer_id,
+                                                      employer.name, employer.get_area()['id'],
+                                                      employer.get_open_vacancies()))
 
-                    print('Загрузка компаний...')
-                    sql_request = 'INSERT INTO companies VALUES ( %s, %s, %s, %s )'
-                    for employer in employers:
-                        cur.execute(sql_request, (employer.employer_id,
-                                                  employer.name, employer.get_area()['id'],
-                                                  employer.get_open_vacancies()))
+                        print('Загрузка вакансий...')
+                        sql_request = 'INSERT INTO vacancies VALUES ( %s, %s, %s, %s, %s, %s, %s )'
+                        for vacancy in vacancies:
+                            cur.execute(sql_request, (vacancy.vacancy_id, vacancy.title,
+                                                      vacancy.get_company()['id'], vacancy.get_area()['id'],
+                                                      vacancy.salary.max_salary, vacancy.salary.currency, vacancy.link))
 
-                    print('Загрузка вакансий...')
-                    sql_request = 'INSERT INTO vacancies VALUES ( %s, %s, %s, %s, %s, %s, %s )'
-                    for vacancy in vacancies:
-                        cur.execute(sql_request, (vacancy.vacancy_id, vacancy.title,
-                                                  vacancy.get_company()['id'], vacancy.get_area()['id'],
-                                                  vacancy.salary.max_salary, vacancy.salary.currency, vacancy.link))
-
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-        finally:
-            if conn is not None:
-                conn.close()
+            except (Exception, psycopg2.DatabaseError) as error:
+                print(error)
+            finally:
+                if conn is not None:
+                    conn.close()
 
     @property
     def exit(self):
